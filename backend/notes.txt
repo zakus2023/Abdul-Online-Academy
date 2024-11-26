@@ -1,0 +1,3028 @@
+LMS Webapp using React and Django
+SECTION 1 - BACKEND
+
+Create new django project
+Install latest python version or 3.11.5
+Create New Folder called Django React LMS
+In the folder, create two new folders called, backend and frontend
+CD into backend and create a virtual environment - python -m venv venv
+Activate the virtual environment - venv\Scripts\activate or venv\bin\activate or source venv/bin/activate
+Install Django - python -m pip install Django==4.2
+Create a Django project in current folder - django-admin startproject backend .
+Create a new requirements.txt file in the backend root dir and added the required packages
+Install Required Packages from requirements.txt  - pip install -r requirements.txt
+Create new app userauths, core, userauths, api- python manage.py startapp app_name 
+Apps are: core, api, userauths.
+Create a .gitignore file and add the files to be ignored 
+Install Apps in settings.py
+Run Python Manage.py Runsever
+
+Setup Django Admin
+python manage.py migrate
+Create Superuser
+Login to the admin section
+
+Install Django Jazzmin if not installed during the requirements.txt installment
+Add Jazzmin to settings.py INSTALLED apps Section at the top before django.contrib.admin
+
+Configure Jazzmin Settings ---> Go to Jazzmin Documentation (django-jazzmin.readthedocs.io)
+Configure Jazzmin UI Tweaks
+
+# JAZZMIN TWEAKING
+
+JAZZMIN_SETTINGS = {
+    # title of the window (Will default to current_admin_site.site_title if absent or None)
+    "site_title": "Abdul LMS Admin",
+
+     # Title on the login screen (19 chars max) (defaults to current_admin_site.site_header if absent or None)
+    "site_header": "Abdul LMS Admin",
+
+    # Title on the brand (19 chars max) (defaults to current_admin_site.site_header if absent or None)
+    "site_brand": "Abdul LMS Admin",
+
+    # Logo to use for your site, must be present in static files, used for brand on top left
+    #"site_logo": "books/img/logo.png",
+
+    # Welcome text on the login screen
+    "welcome_sign": "Welcome to the Abdul LMS",
+
+    # Copyright on the footer
+    "copyright": "Abdul IT Solutions",
+
+    # Whether to show the UI customizer on the sidebar
+    "show_ui_builder": True,
+
+
+}
+
+# after adding show_ui_bilder: true, edit the UI in the admin panel, scrol down to show code, copy the code and paste it here
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": False,
+    "accent": "accent-primary",
+    "navbar": "navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": False,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": "solar",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}
+
+Migrate Database
+
+
+Configure Templates
+In the settings.py import os 
+Then inside the TEMPLATES = [
+    'DIRS':[os.path.join(BASE_DIR, "templates")]
+]
+After that create a folder in the backend folder called templates
+
+Configure static and media files
+In the settings.py scrool down to the STATIC_URL... and add this under it 
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+STATIC_ROOT = BASE_DIR / 'templates'
+create the static folder in the Backend directory
+
+Configure media folder in the settings.py under the above
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+create the media folder in the Backend directory
+
+Then oprn main urls.py and add the following:
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+Then add the following after the urlpatterns
+
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+Configure template configuration in TEMPLATES Section settings.py
+Create a new folder under Templates.
+Configure the static and media files in settings.py and urls.py
+Create media and static folders.
+
+============= Inside the userauth app ================
+Create Django Custom User Model and Profile
+Create Custom user and profile models in core.models
+
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+
+# Create your models here.
+
+# Custom User model that inherits from Django's built-in AbstractUser class
+class User(AbstractUser):
+    # Overriding the username field to have a max length of 100 and ensure it is unique
+    username =  models.CharField(max_length=100, unique=True)
+    
+    # Email field with max length of 100, also set to be unique
+    email = models.EmailField(max_length=100, unique=True)
+    
+    # A field to store the user's full name
+    full_name = models.CharField(max_length=100)
+    
+    # A field to store an OTP (One-Time Password), also unique to prevent duplicates
+    otp = models.CharField(max_length=100, null=True, blank=True)
+    refresh_token = models.CharField(max_length=1000, null=True, blank=True)
+
+    # Set email as the field used to log in instead of the default username
+    USERNAME_FIELD = 'email'
+    
+    # Fields required when creating a superuser (besides email), in this case, username is required
+    REQUIRED_FIELDS = ['username']
+
+    # String representation of the user object, returning the email as a string
+    def __str__(self):
+        return self.email
+    
+    # Custom save method to auto-fill username and full_name if not provided
+    def save(self, *args, **kwargs):
+        # Splitting the email at '@' to generate default values for username and full_name
+        email_username, full_name = self.email.split("@")
+        
+        # If full_name is not provided (empty or None), set it to the email prefix (before '@')
+        if self.full_name == "" or self.full_name == None:
+            self.full_name = email_username
+        
+        # If username is not provided (empty or None), set it to the email prefix
+        if self.username == "" or self.username == None:
+            self.username = email_username
+        
+        # Call the original save method to handle the actual saving of the object
+        super(User, self).save(*args, **kwargs)
+
+
+# Profile model to store additional information related to the User model
+class Profile(models.Model):
+    # One-to-one relationship with the custom User model (each user has one profile)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    
+    # File field for storing user profile images, with a default image if none is provided
+    image = models.FileField(upload_to="user_folder", default="default-user.jpg", null=True, blank=True)
+    
+    # Full name field for the profile, separate from the User model
+    full_name = models.CharField(max_length=100)
+    
+    # Optional field to store the user's country, allowing it to be null or blank
+    country = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Optional field for a brief description or biography of the user
+    about = models.TextField(null=True, blank=True)
+    
+    # Auto-updating timestamp to store the last modification date of the profile
+    date = models.DateTimeField(auto_now=True)
+
+    # String representation of the profile object
+    def __str__(self):
+        # If full_name is available, return it; otherwise, return the full_name from the associated User
+        if self.full_name:
+            return str(self.full_name)
+        else:
+            return str(self.user.full_name)
+        
+    # Custom save method for the Profile model
+    def save(self, *args, **kwargs):
+        # If full_name is not provided (empty or None), use the associated user's username
+        if self.full_name == "" or self.full_name == None:
+            self.full_name = self.user.username
+        
+        # Call the original save method to handle saving the object
+        super(Profile, self).save(*args, **kwargs)
+
+Register it in the admin.py of the userauths app
+Register Model in Admin and Add filters, Displays, etc.
+
+from django.contrib import admin
+from .models import User, Profile
+
+# Register your models here.
+
+# Admin class for the Profile model to customize its appearance in the admin interface
+class ProfileAdmin(admin.ModelAdmin):
+    # Specifies which fields to display in the list view of the Profile in the admin panel
+    list_display = ['user', 'full_name', 'date']
+
+# Register the custom User model with the admin interface
+admin.site.register(User)
+
+# Register the Profile model with the custom ProfileAdmin class for list customization
+admin.site.register(Profile, ProfileAdmin)
+
+# Add this after MEDIA_ROOT ...
+# Adding this for custom user creation
+
+AUTH_USER_MODEL = 'userauths.User'
+
+#### Before you run makemigrations and migrate
+Comment the following in the settings.py
+    'jazzmin',
+
+    'django.contrib.admin',
+
+Comment the following in the main urls.py:
+
+        path('admin/', admin.site.urls),
+
+Run make Migration and Migrate Commands
+
+#### After that remember to uncomment the commented code
+
+Recreate the superuser
+run the server
+Test Model in Django Admin Panel
+
+#### Using Signals to create a profile for a user automatically ############################
+
+In the models.py of the add:
+  from django.db.models.signals import post_save
+
+    # Signal handler to create a user profile automatically when a new User is created
+    def create_user_profile(sender, instance, created, **kwargs):
+        # Check if the user instance was just created
+        if created:
+            # Create a corresponding Profile object for the newly created user
+            Profile.objects.create(user=instance)
+
+    # Signal handler to save the user profile whenever the User instance is saved
+    def save_user_profile(sender, instance, **kwargs):
+        # Ensure the profile related to the user is saved whenever the user object is saved
+        instance.profile.save()
+
+    # Connect the create_user_profile function to the post_save signal for the User model
+    # This triggers create_user_profile whenever a new User instance is saved
+    post_save.connect(create_user_profile, sender=User)
+
+    # Connect the save_user_profile function to the post_save signal for the User model
+    # This triggers save_user_profile whenever a User instance is saved
+    post_save.connect(save_user_profile, sender=User)
+
+    
+##################################################################
+
+Custom User Model and Profile Serializer
+    In the backend folder install djangorestframework using pip
+    Then add rest_framework in the installed apps in the settings.py
+    In the api app create a file called serializer.py
+
+        from rest_framework import serializers
+        from userauths.models import User, Profile
+
+        # Serializer class for the User model
+        # This converts User model instances to JSON format and validates input data for the model
+        class UserSerializer(serializers.ModelSerializer):
+            class Meta:
+                # Specify that this serializer is based on the User model
+                model = User
+                # Include all fields from the User model in the serialized data
+                fields = '__all__'
+
+        # Serializer class for the Profile model
+        # This converts Profile model instances to JSON format and validates input data for the model
+        class ProfileSerializer(serializers.ModelSerializer):
+            class Meta:
+                # Specify that this serializer is based on the Profile model
+                model = Profile
+                # Include all fields from the Profile model in the serialized data
+                fields = '__all__'
+
+
+
+===========================================================================
+
+Discuss About Django JWT Authentication
+Discuss JWT Authentication
+
+Setup Settings.py jwt
+In the settings.py add the following in the installed apps
+    # Third part apps
+    'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+
+Then in the settings.py under middle ware add the following:
+    'corsheade
+    rs.middleware.CorsMiddleware',
+
+JWT Configuration: 
+------------------------
+This should be imported at the top in the settings.py
+
+from datetime import timedelta
+
+This should be at the bottom in the settings.py
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=50),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': False,
+
+    'ALGORITHM': 'HS256',
+
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JWK_URL': None,
+    'LEEWAY': 0,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+
+    'JTI_CLAIM': 'jti',
+
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+}
+
+Then Set cors to allow all 
+CORS_ALLOW_ALL_ORIGINS=True
+
+======================================================================================
+
+Setup Login Serializer (Create the Access and Refresh Tokens for login)
+Create MyTokenObtainPairSerailizer Class to generate and refresh token
+
+Inside the api app, serializer.py 
+    from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+    Then create the following:
+
+        # Import the base serializer for obtaining token pairs (access and refresh tokens)
+        from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+        # Custom serializer that extends the default TokenObtainPairSerializer to add custom claims to the token
+        class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+            # Override the get_token method to customize the token payload
+            @classmethod
+            def get_token(cls, user):
+                # Call the superclass's get_token method to get the default token for the user
+                token = super().get_token(user)
+
+                # Add custom claims (additional fields) to the token
+                token['email'] = user.email            # Add the user's email to the token payload
+                token['full_name'] = user.full_name    # Add the user's full name to the token payload
+                token['username'] = user.username      # Add the user's username to the token payload
+
+                # Return the modified token with custom claims
+                return token
+
+        Then in the api app
+        Go to the views.py
+
+        # Import the render function for rendering templates
+        from django.shortcuts import render
+        # Import the custom serializer from the api module
+        from api import serializer as api_serializer
+
+        # Import the default TokenObtainPairView from Django REST Framework SimpleJWT
+        from rest_framework_simplejwt.views import TokenObtainPairView
+
+
+        # Create your views here.
+
+        # Custom view that extends the default TokenObtainPairView to use the custom serializer
+        class MyTokenObtainPairView(TokenObtainPairView):
+            # Specify the serializer class to be used for obtaining tokens
+            serializer_class = api_serializer.MyTokenObtainPairSerializer
+
+    Then create a file inside the api app called urls.py:
+        from api import views as api_views
+        from django.urls import path
+
+        urlpatterns = [
+            path('user/token/', api_views.MyTokenObtainPairView())
+        ]
+
+    Then add the api urls in the main urls.py
+        urlpatterns = [
+        path('admin/', admin.site.urls),
+        path('api/v1/', include('api.urls'))
+    ] 
+
+    Go to the browser and enter: http://127.0.0.1:8000/api/v1/user/token/
+    Copy either the access or refresh token and go to https://jwt.io/
+    debug --> and paste the copied token in the Encoded
+
+=====================================================================================
+
+Setup Registration Serializer
+Create Registration Serializer Class to register users.
+
+Go to the api app ---> serializer.py and add the Registration Serializer claas:
+
+    from django.contrib.auth.password_validation import validate_password
+
+
+    # Importing necessary modules for creating the serializer
+    from rest_framework import serializers
+    from django.contrib.auth.password_validation import validate_password
+    from userauths.models import User
+
+    # Serializer class for registering a new user
+    class RegisterSerializer(serializers.ModelSerializer):
+        # Defining password field with write_only=True (it won't be returned in responses)
+        # Using Django's built-in password validation for security
+        password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+        
+        # Adding confirm_password field to ensure password confirmation
+        confirm_password = serializers.CharField(write_only=True, required=True)
+
+        # Meta class defines the model and fields that the serializer will handle
+        class Meta:
+            model = User  # This serializer is based on the User model
+            fields = ['full_name', 'email', 'password', 'confirm_password']  # Fields included in the registration process
+
+        # Custom validation method to ensure passwords match
+        def validate(self, attr):
+            # Check if password and confirm_password fields match
+            if attr['password'] != attr['confirm_password']:
+                # If passwords do not match, raise a validation error
+                raise serializers.ValidationError({"password": "Passwords do not match."})
+            # Return the attributes if passwords match
+            return attr
+
+        # Method to create a new user instance when registration is successful
+        def create(self, validated_data):
+            # Create a new user instance using the validated full_name and email fields
+            user = User.objects.create(
+                full_name=validated_data['full_name'],
+                email=validated_data['email'],
+            )
+            
+            # Automatically generate a username from the user's email (using the part before '@')
+            email_username, _ = user.email.split("@")
+            user.username = email_username
+            
+            # Set the password using Django's set_password method to ensure password is hashed
+            user.set_password(validated_data['password'])
+            
+            # Save the user instance to the database
+            user.save()
+            
+            # Return the newly created user object
+            return user
+
+
+Create the registration view
+
+In the api app --> views.py
+    
+    from rest_framework import generics
+    from userauths.models import User
+    from rest_framework.permissions import AllowAny
+
+    # CreateAPIView is a built-in Django REST Framework view for handling HTTP POST requests
+    # This view is for registering new users
+    class RegistrationView(generics.CreateAPIView):
+        # The queryset defines which model instances the view will operate on
+        # In this case, it's all User objects, allowing the view to create new users
+        queryset = User.objects.all()
+
+        # AllowAny permission class means that anyone can access this view
+        # No authentication or special permission is required
+        permission_classes = [AllowAny]
+
+        # This specifies which serializer to use for handling the request data
+        # It uses the custom RegisterSerializer for validating and creating users
+        serializer_class = api_serializer.RegisterSerializer
+
+Create the url path for registration in the api app --> urls.py 
+
+    path('user/register/', api_views.RegistrationView.as_view()),
+
+Create the TokenRefresh Api end point in the api urls.py file:
+    from rest_framework_simplejwt.views import TokenRefreshView
+    
+    path('user/token/refresh/', TokenRefreshView.as_view()),
+
+To test 
+    
+Test In Browser
+    http://127.0.0.1:8000/api/v1/user/register/
+    http://127.0.0.1:8000/api/v1/user/token/refresh Then paste the refresh token
+
+=====================================================================================
+
+Password Reset (API)
+
+In the api app ==> views.py 
+Create the PasswordResetEmailVerifyView
+
+    import random
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    # Function to generate a random OTP (One-Time Password)
+    # Default length of the OTP is set to 7 digits
+    def generate_random_otp(Length=7):
+        # The OTP is generated by selecting random digits (0-9) and joining them into a string
+        otp = ''.join([str(random.randint(0, 9)) for _ in range(Length)])
+        return otp
+
+
+    # API View for verifying the email and initiating the password reset process
+    # Inherits from RetrieveAPIView, which is used to handle HTTP GET requests to retrieve a single object
+    class PasswordResetEmailVerifyAPIView(generics.RetrieveAPIView):
+        # This view is accessible to anyone without requiring authentication
+        permission_classes = [AllowAny]
+
+        # The serializer that defines the structure and validation for the returned data
+        serializer_class = api_serializer.UserSerializer
+
+        # Overriding the `get_object` method to customize what happens when the user object is retrieved
+        def get_object(self):
+            # Extracting the email from the URL kwargs
+            email = self.kwargs['email']
+            
+            # Attempting to find the user in the database based on the provided email
+            user = User.objects.filter(email=email).first()
+
+            if user:  # If a user is found:
+                # Retrieve the primary key (UUID or ID) of the user for constructing the reset link
+                uuidb64 = user.pk
+
+                # Create a new JWT refresh token for the user
+                refresh = RefreshToken.for_user(user)
+                # Extract the access token from the refresh token
+                refresh_token = str(refresh.access_token)
+
+                # Update the user's record with the newly generated refresh token
+                user.refresh_token = refresh_token
+                # Generate a new OTP for the user
+                user.otp = generate_random_otp()  
+                # Save the changes to the database
+                user.save()
+
+                # Constructing a password reset link with the OTP, user's UUID, and the refresh token
+                link = f"http://localhost:5173/create-new-password/?otp={user.otp}&uuidb64={uuidb64}&refresh_token={refresh_token}"
+
+                # Printing the reset link to the console for testing/debugging purposes
+                print(f"link is {link}")
+
+            # Returning the user object (it will be serialized by the specified serializer)
+            return user
+
+            run makemigrations and migrate
+
+Then go to api app --> urls.py
+    Create the url path for resteting password:
+     path('user/password-reset-email/<email>/', api_views.PasswordResetEmailVerifyAPIView.as_view())
+
+Test the api
+
+================================================================================================================================
+In the api app ---> views.py
+create the view:
+
+from rest_framework.response import Response
+from rest_framework import generics, status
+
+# API View for handling password change based on OTP verification
+# Inherits from CreateAPIView, which is used to handle HTTP POST requests
+class PasswordChangeAPIView(generics.CreateAPIView):
+    # This view is accessible to anyone, hence no authentication is required
+    permission_classes = [AllowAny]
+    
+    # The serializer that defines the structure and validation for the incoming request data
+    serializer_class = api_serializer.UserSerializer
+
+    # Overriding the `create` method to customize what happens when a POST request is made
+    def create(self, request, *args, **kwargs):
+        # Extracting the request payload (data sent by the client)
+        payload = request.data
+
+        # Extracting relevant fields from the payload: OTP, UUID (user ID), and the new password
+        otp = payload['otp']
+        uuidb64 = payload['uuidb64']  # The user's primary key (UUID or ID)
+        password = payload['password']
+
+        # Attempting to find the user in the database based on their ID and OTP
+        user = User.objects.get(id=uuidb64, otp=otp)
+
+        if user:  # If a user is found with the matching ID and OTP:
+            # Set the user's password to the new password (hashing it in the process)
+            user.set_password(password)
+            # Clear the OTP (so it can't be reused)
+            user.otp = ""
+            # Save the updated user record to the database
+            user.save()
+
+            # Return a success message with HTTP status 201 (Created)
+            return Response({"message": "Password changed successfully"}, status=status.HTTP_201_CREATED)
+
+Create the url path for the change-password view
+    path('user/change-password/', api_views.PasswordChangeAPIView.as_view()),
+
+==================================================================================================================================
+
+Environmental variable
+
+add this to the settings.py
+    from environs import Env
+    env =Env()
+    env.read_env()
+
+Create a file called .env in the main backend folder
+
+### Add the following to the .env
+#Email configuration
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'idbsch2012@gmail.com' 
+EMAIL_HOST_PASSWORD = 'qfwl utxs lltf ulol' // craeted by visiting: https://myaccount.google.com/apppasswords?pli=1&rapt=AEjHL4PYcy8T5S2vc4-puZtZ8o8kg1mb-8elSDziKXHaPY9O75wGXp1bMiuTew2eUCjcTrxpBRrl-TRRo0oGu3s5SzkvVaNp6a01b2kPPkUT5oThLLtp-5w
+EMAIL_USE_TLS = True
+
+#google api key
+GOOGLE_API_KEY = 'AIzaSyDETJfjjx8oJZk0_s7xe_Ky04rwZ3x_ltQ'
+
+## Add this to the settings.py
+# EMAIL_CONFIG
+
+#Email Backend Configuration
+EMAIL_HOST = env('EMAIL_HOST')
+EMAIL_PORT = env('EMAIL_PORT', cast=int)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = env('EMAIL_USE_TLS', cast=bool)
+DEFAULT_FROM_EMAIL = 'Abdul Online Learning <idbsch2012@gmail.com>'
+
+
+#google api key
+GOOGLE_API_KEY = env('GOOGLE_API_KEY')
+
+## Then go to api app ==> views.py 
+    from  django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from django.conf import settings
+
+Then in the PasswordResetEmailVerifyView
+add the following under the link=...
+
+     context = {
+                "link": link,
+                "username": user.username
+            }
+            subject = "Password Reset Email"
+            text_body = render_to_string("email/password_reset.txt", context)
+            html_body = render_to_string("email/password_reset.html", context)
+
+            msg = EmailMultiAlternatives(
+                subject=subject,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
+                body=text_body
+            )
+
+            msg.attach_alternative(html_body, "text/html")
+            msg.send()
+
+Then create a file called password_reset.txt and password_reset.html in the templates folder. The two files should be in a folder called email which you will create inside the templates folder
+test it by visting: l127.0.0.1:8000/api/v1/user/password-reset/<email>
+=====================================================================================================================================
+
+Generate Robust Documentation using DRF-Yasg
+Generate docs using drf-yasg
+pip install drf-yasg
+Add drf_yasg to installed apps
+In main urls.py import the snippets for creating the yasg
+
+
+API Documentation Using DRF-YASG
+in the main urls.py make the following imports
+
+# drf-yasg imports
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+Then add the folloing before the urlpatterns.''
+
+schema_view = get_schema_view(
+   openapi.Info(
+      title="E-commerce Backend APIs",
+      default_version='v1',
+      description="This is the API documentation for Desphixs LMS project APIs",
+      terms_of_service="https://www.google.com/policies/terms/",
+      contact=openapi.Contact(email="destiny@gmail.com"),
+      license=openapi.License(name="BSD License"),
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
+
+Then add the following to the urlpatterns
+
+    path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    path('', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+
+add the following to the installed apps in the settings.py
+
+
+
+    'drf_yasg',
+
+Test it by visiting 127.0.0.1:8000/
+===========================================================================================================
+
+React JS set up
+Create the react project using Vite
+Install yarn
+$npm install --global yarn //this will be used to manage the packages instead of npm
+
+Create the vite project in the current folder
+$yarn create vite . --template react
+
+$yarn
+$yarn add axios
+
+Replace the content of the package.json with this:
+
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ckeditor/ckeditor5-build-classic": "^40.2.0",
+    "@ckeditor/ckeditor5-react": "^6.2.0",
+    "@paypal/react-paypal-js": "^8.1.3",
+    "axios": "^1.6.5",
+    "bootstrap": "^5.3.2",
+    "chart.js": "^4.4.0",
+    "dayjs": "^1.11.10",
+    "js-cookie": "^3.0.5",
+    "jwt-decode": "^3.1.2",
+    "moment": "^2.30.1",
+    "react": "^18.2.0",
+    "react-bootstrap": "^2.10.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.48.2",
+    "react-icons": "^5.0.1",
+    "react-photo-album": "^2.3.0",
+    "react-player": "^2.14.1",
+    "react-rater": "^6.0.5",
+    "react-router-dom": "6.10.0",
+    "sweetalert2": "^11.7.32",
+    "yet-another-react-lightbox": "^3.14.0",
+    "zustand": "^4.4.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
+    "prettier": "^3.0.3",
+    "simple-zustand-devtools": "^1.1.0",
+    "vite": "^4.4.5"
+  }
+}
+
+Then run $yarn
+
+$yarn dev
+
+=====================================================================================================================
+
+Create the zustand store for state management
+This will help us to track the user data
+
+In the frontend ==> src foldr ==>
+create a folder called storeinside the folder create a file called auth.js
+
+import { create } from "zustand";
+
+import { mountStoreDevTool } from "simple-zustand-devtools";
+
+//  we can create multiple stores to serve different purposes
+const useAuthStore = create((set, get) => ({
+  allUserData: null,
+  loading: false,
+
+  user: () => ({
+    user_id: get().allUserData?.user_id || null,
+    username: get().allUserData?.username || null,
+  }),
+
+  setUser: (user) =>
+    set({
+      allUserData: user,
+    }),
+
+  setLoading: (loading) => set({ loading }),
+
+  isLoggedIn: () => get().allUserData !== null,
+}));
+
+if (import.meta.env.DEV) {
+  mountStoreDevTool("Store", useAuthStore);
+}
+
+export { useAuthStore };
+
+========================================================================================================================
+Customize axios requests
+
+In the src folder create a folder called utils
+in the utils folder create the following files:
+
+axios.js
+---------------
+import axios from "axios";
+
+// Creating a customized Axios instance for making HTTP requests
+const apiInstance = axios.create({
+  // Setting the base URL for all API requests to this server
+  baseURL: 'http://127.0.0.1:8000/api/v1/',
+
+  // Timeout after 10 seconds if the request takes too long
+  timeout: 10000,
+
+  // Setting default headers for all requests
+  headers: {
+    // Specifying that the content type of the request is JSON
+    'Content-Type': "application/json",
+    
+    // Indicating that the client expects JSON responses
+    Accept: "application/json"
+  }
+});
+
+// Exporting the Axios instance for use in other parts of the application
+export default apiInstance;
+
+auth.js
+--------------
+import { useAuthStore } from "../store/auth"; // Importing authentication state management store
+import apiInstance from "./axios"; // Importing Axios instance with base configuration
+import jwtDecode from "jwt-decode"; // Library to decode JWT tokens
+import Cookie from "js-cookie"; // Cookie handling library
+import Swal from "sweetalert2"; // Library for customizable alerts
+import axios from "axios"; // Importing Axios for HTTP requests
+
+// Function to handle user login
+export const login = async (email, password) => {
+  try {
+    // Sending POST request for login with email and password
+    const { data, status } = await axios.post("user/token/", {
+      email,
+      password,
+    });
+
+    // If login is successful, set user authentication and show an alert
+    if (status === 200) {
+      setAuthUser(data.access, data.refresh); // Store access and refresh tokens
+      alert("Login Successful");
+    }
+    return { data, error: null }; // Return the response data if successful
+  } catch (error) {
+    // If an error occurs, return the error message
+    return {
+      data: null,
+      error: error.response.data?.detail || "Something went wrong",
+    };
+  }
+};
+
+// Function to handle user registration
+export const register = async (
+  full_name,
+  email,
+  password,
+  confirm_password
+) => {
+  try {
+    // Sending POST request to register a new user
+    const { data } = await axios.post("user/register", {
+      full_name,
+      email,
+      password,
+      confirm_password,
+    });
+
+    // Log the user in automatically after successful registration
+    await login(email, password);
+    alert("Registration Successful");
+
+    return { data, error: null }; // Return the response data if successful
+  } catch (error) {
+    // If an error occurs, return the error message
+    return {
+      data: null,
+      error: error.response.data?.detail || "Something went wrong",
+    };
+  }
+};
+
+// Function to log the user out
+export const logout = () => {
+  // Remove access and refresh tokens from cookies
+  Cookie.remove("access_token");
+  Cookie.remove("refresh_token");
+
+  // Clear the authenticated user from the state store
+  useAuthStore.getState().setUser(null);
+
+  alert("You are logged out"); // Show an alert to the user
+};
+
+// Function to set the authenticated user
+export const setAuthUser = (access_token, refresh_token) => {
+  // Store access token in cookies for 1 day
+  Cookie.set("access_token", access_token, {
+    expires: 1,
+    secure: true, // Ensures cookies are only sent over HTTPS
+  });
+
+  // Store refresh token in cookies for 7 days
+  Cookie.set("refresh_token", access_token, {
+    expires: 7,
+    secure: true,
+  });
+
+  // Decode the access token to get user data
+  const user = jwtDecode(access_token) ?? null;
+
+  // If user exists, set it in the authentication store
+  if (user) {
+    useAuthStore.getState().setUser(user);
+  } else {
+    // Otherwise, indicate loading is complete
+    useAuthStore.getState().setLoading(false);
+  }
+};
+
+// Function to refresh the access token using the refresh token
+export const getRefreshToken = async () => {
+  const refresh_token = Cookie.get("refresh_token"); // Get refresh token from cookies
+  const response = await axios.post("user/token/refresh", {
+    refresh: refresh_token,
+  });
+  return response.data; // Return new tokens from the refresh response
+};
+
+// Function to check if the access token is expired
+export const isAccessTokenExpired = (access_token) => {
+  try {
+    const decodedToken = jwtDecode(access_token); // Decode the access token
+    return decodedToken.exp < Date.now() / 1000; // Compare token expiration with the current time
+  } catch (error) {
+    console.log(error); // Log any error during token decoding
+    return true; // Consider token expired if decoding fails
+  }
+};
+
+// Function to set the authenticated user if tokens exist
+export const setUser = async () => {
+  const access_token = Cookie.get("access_token"); // Get access token from cookies
+  const refresh_token = Cookie.get("refresh_token"); // Get refresh token from cookies
+
+  if (!access_token || !refresh_token) {
+    return; // If no tokens are available, return early
+  }
+
+  // If the access token has expired, refresh it
+  if (isAccessTokenExpired(access_token)) {
+    const response = getRefreshToken(refresh_token); // Get new tokens
+    setAuthUser(response.access, response.refresh); // Set the new tokens
+  } else {
+    // Otherwise, use the existing tokens
+    setAuthUser(access_token, refresh_token);
+  }
+};
+
+
+constants.js
+----------------------
+export const API_BASE_URL = `http://127.0.0.1:8000/api/v1/`
+
+============== Intercept axios requests using react js
+useAxios.js
+--------------
+import axios from "axios"; 
+// Importing the Axios library, used to make HTTP requests
+
+import { getRefreshToken, isAccessTokenExpired, setAuthUser } from "./auth"; 
+// Importing utility functions from the "auth" module:
+// - getRefreshToken: refreshes the access token using the refresh token
+// - isAccessTokenExpired: checks if the current access token has expired
+// - setAuthUser: sets the new access and refresh tokens in cookies and user state
+
+import { API_BASE_URL } from "./constants"; 
+// Importing the base API URL from a constants file for use in Axios requests
+
+import Cookies from "js-cookie"; 
+// Importing the "js-cookie" library to manage cookies, like getting, setting, or removing them
+
+const useAxios = () => {
+  // A custom hook function that returns an Axios instance with certain configurations
+
+  const access_token = Cookies.get("access_token"); 
+  // Retrieves the access token from cookies, if available
+
+  const refresh_token = Cookies.get("refresh_token"); 
+  // Retrieves the refresh token from cookies, if available
+
+  const axiosInstance = axios.create({
+    // Creating an Axios instance with a custom configuration
+    baseURL: API_BASE_URL, 
+    // Setting the base URL for all requests made using this Axios instance
+    headers: { Authorization: `Bearer ${access_token}` }, 
+    // Adding an Authorization header with the current access token for authenticated API calls
+  });
+
+  // Adding an Axios request interceptor
+  // This function runs every time a request is made to modify the request configuration
+  axiosInstance.interceptors.request.use(async (req) => {
+
+    if (isAccessTokenExpired) {
+      // Check if the access token has expired
+      // If the token is still valid, the request proceeds as normal
+      return req;
+    }
+
+    // If the access token has expired, we attempt to refresh the token
+    const response = await getRefreshToken(refresh_token); 
+    // Fetches new access and refresh tokens by calling the "getRefreshToken" function using the refresh token
+
+    setAuthUser(response.access, response.refresh); 
+    // Updates the new access and refresh tokens in cookies and the user state
+
+    req.headers.Authorization = `Bearer ${response.data?.access}`; 
+    // Sets the new access token in the Authorization header of the current request
+
+    return req; 
+    // Returns the updated request configuration with the new access token
+  });
+
+  return axiosInstance; 
+  // The Axios instance with the interceptor is returned for use in making API requests
+};
+
+export default useAxios;
+// Exporting the custom hook for use in other parts of the application
+
+Key Concepts:
+useAxios Hook:
+Creates and configures a reusable Axios instance for making API requests.
+Automatically handles token refreshing if the access token expires before making a request.
+Axios Interceptor:
+Checks if the access token is expired.
+If expired, it uses the refresh token to obtain a new access token before retrying the request.
+Cookie Management:
+Access tokens and refresh tokens are stored in cookies for persistent authentication across sessions.
+
+
+========================================================================================================================
+Main MainWrapper
+-----------------
+In the src folder create a folder called layouts
+In the folder create a file called MainWrapper.jsx
+
+   // Importing necessary modules from React library.
+import React, { useEffect, useState } from "react";
+
+// Importing the setUser function from a utilities file, presumably for handling user authentication.
+import { setUser } from "../utils/auth";
+
+// Defining the MainWrapper functional component that takes children as props.
+// This component will wrap around other components or elements passed as children.
+const MainWrapper = ({ children }) => {
+    // Declaring a state variable `loading` with an initial value of true.
+    // This state will track whether the user data is being loaded.
+    const [loading, setLoading] = useState(true);
+
+    // useEffect is a hook that runs side effects in function components.
+    useEffect(() => {
+        // Defining an asynchronous handler function to fetch user data.
+        const handler = async () => {
+            // Set loading to true before starting the user data fetching process.
+            setLoading(true);
+
+            // Await the setUser function to perform its task (presumably to fetch and set user data).
+            await setUser();
+
+            // Once setUser completes, set loading to false, indicating that the loading process is finished.
+            setLoading(false);
+        };
+        
+        // Calling the handler function to initiate the user data fetching.
+        handler();
+    }, []); // The empty dependency array ensures this effect runs only once after the initial render.
+
+    // Render the component: if loading is true, render nothing (null).
+    // Otherwise, render the children passed to this component.
+    return <>{loading ? null : children}</>;
+};
+
+// Exporting the MainWrapper component to be used in other parts of the application.
+export default MainWrapper;
+
+
+========================================================================================================================
+
+Private Routes
+---------------
+
+import React from "react"; 
+// Importing React library to create components
+
+import { useAuthStore } from "../store/auth"; 
+// Importing the custom authentication store (created using Zustand) to manage authentication state
+
+import { Navigate } from "react-router-dom"; 
+// Importing the Navigate component from React Router, used for programmatic navigation
+
+const PrivateRoutes = ({ children }) => {
+  // Declaring a functional component called `PrivateRoutes` that takes `children` as props
+  // `children` refers to the nested components within `PrivateRoutes`
+
+  const loggedIn = useAuthStore((state) => state.isLoggedIn)(); 
+  // Accessing the `isLoggedIn` method from the authentication store
+  // This checks if the user is logged in by verifying the current state of authentication
+
+  return loggedIn ? (
+    <>{children}</> 
+    // If the user is logged in, render the children components (i.e., the protected components)
+  ) : (
+    <Navigate to="/login/"></Navigate> 
+    // If the user is not logged in, redirect them to the login page using the Navigate component
+  );
+};
+
+export default PrivateRoutes; 
+// Exporting the `PrivateRoutes` component for use in other parts of the application
+
+
+========================================================================================================================
+Creating the pages
+---------------------
+Clean up the project
+In the app.jsx remove everything except 
+
+    import './App.css'
+
+    function App() {
+    
+    }
+
+export default App
+-----------------------------------------
+
+In the index.css comment out evrything
+In the app.css comment out evrything
+------------------------------------------
+
+Update the app.jsx file as follows:
+
+    
+import './App.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import MainWrapper from './layouts/MainWrapper'
+import PrivateRoutes from './layouts/PrivateRoutes'
+import Register from './views/Register'
+
+
+function App() {
+ return (
+  <BrowserRouter>
+  <MainWrapper>
+    <Routes>
+      <Route path='/register/' element={<Register/>}/>
+    </Routes>
+  </MainWrapper>
+  </BrowserRouter>
+ )
+}
+
+export default App
+---------------------------------------------
+
+
+
+Create a folder called views inside the src folder
+in the folder create the following files:
+
+register.jsx
+-----------------
+import React, { useState } from "react";
+import BaseHeader from "../partials/BaseHeader";
+import BaseFooter from "../partials/BaseFooter";
+import { Link } from "react-router-dom";
+import { register } from "../utils/auth";
+import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+
+function Register() {
+  const [full_name, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm_password, setConfirmPassword] = useState("");
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const res = await register(full_name, email, password, confirm_password);
+    if (!res.error) {
+      navigate("/login/");
+      Swal.fire({
+        title: "Congratulations!!!",
+        text: "Registration Successful",
+        icon: "success",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    }
+  };
+
+  return (
+    <>
+      <BaseHeader />
+
+      <section
+        className="container d-flex flex-column vh-100"
+        style={{ marginTop: "150px" }}
+      >
+        <div className="row align-items-center justify-content-center g-0 h-lg-100 py-8">
+          <div className="col-lg-5 col-md-8 py-8 py-xl-0">
+            <div className="card shadow">
+              <div className="card-body p-6">
+                <div className="mb-4">
+                  <h1 className="mb-1 fw-bold">Sign up</h1>
+                  <span>
+                    Already have an account?
+                    <Link to="/login/" className="ms-1">
+                      Sign In
+                    </Link>
+                  </span>
+                </div>
+                {/* Form */}
+                <form
+                  className="needs-validation"
+                  noValidate=""
+                  onSubmit={handleSubmit}
+                >
+                  {/* Username */}
+                  <div className="mb-3">
+                    <label htmlFor="email" className="form-label">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      id="full_name"
+                      className="form-control"
+                      name="full_name"
+                      placeholder="John Doe"
+                      required=""
+                      onChange={(e) => setFullName(e.target.value)}
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="email" className="form-label">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      className="form-control"
+                      name="email"
+                      placeholder="johndoe@gmail.com"
+                      required=""
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div className="mb-3">
+                    <label htmlFor="password" className="form-label">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      className="form-control"
+                      name="password"
+                      placeholder="**************"
+                      required=""
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="password" className="form-label">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      className="form-control"
+                      name="password"
+                      placeholder="**************"
+                      required=""
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <div className="d-grid">
+                      <button type="submit" className="btn btn-primary">
+                        Sign Up <i className="fas fa-user-plus"></i>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <BaseFooter />
+    </>
+  );
+}
+
+export default Register;
+------------------------------
+
+login.jsx
+---------------
+import React, { useState } from 'react'
+import BaseHeader from '../partials/BaseHeader'
+import BaseFooter from '../partials/BaseFooter'
+import { Link, useNavigate } from 'react-router-dom'
+import { login } from '../utils/auth'
+import Swal from 'sweetalert2'
+
+
+
+function Login() {
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword]= useState("")
+
+  const navigate = useNavigate()
+
+  const handleSubmit = async (e)=>{
+    e.preventDefault()
+    const res = await login(email, password)
+    if(!res.error){
+      navigate("/");
+      Swal.fire({
+        title: "Congratulations!!!",
+        text: "Login Successful",
+        icon: "success",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    }
+  }
+
+  return (
+    <>
+      <BaseHeader />
+
+      <section className="container d-flex flex-column vh-100" style={{ marginTop: "150px" }}>
+        <div className="row align-items-center justify-content-center g-0 h-lg-100 py-8">
+          <div className="col-lg-5 col-md-8 py-8 py-xl-0">
+            <div className="card shadow">
+              <div className="card-body p-6">
+                <div className="mb-4">
+                  <h1 className="mb-1 fw-bold">Sign in</h1>
+                  <span>
+                    Don’t have an account?
+                    <Link to="/register/" className="ms-1">
+                      Sign up
+                    </Link>
+                  </span>
+                </div>
+                {/* Form */}
+                <form className="needs-validation" noValidate="" onSubmit={handleSubmit}>
+                  {/* Username */}
+                  <div className="mb-3">
+                    <label htmlFor="email" className="form-label">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      className="form-control"
+                      name="email"
+                      placeholder="johndoe@gmail.com"
+                      required=""
+                      onChange={(e)=>setEmail(e.target.value)}
+                    />
+                    <div className="invalid-feedback">
+                      Please enter valid username.
+                    </div>
+                  </div>
+                  {/* Password */}
+                  <div className="mb-3">
+                    <label htmlFor="password" className="form-label">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      className="form-control"
+                      name="password"
+                      placeholder="**************"
+                      required=""
+                      onChange={(e)=>setPassword(e.target.value)}
+                    />
+                    <div className="invalid-feedback">
+                      Please enter valid password.
+                    </div>
+                  </div>
+                  {/* Checkbox */}
+                  <div className="d-lg-flex justify-content-between align-items-center mb-4">
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="rememberme"
+                        required=""
+                      />
+                      <label className="form-check-label" htmlFor="rememberme">
+                        Remember me
+                      </label>
+                      <div className="invalid-feedback">
+                        You must agree before submitting.
+                      </div>
+                    </div>
+                    <div>
+                      <Link to="/forgot-password/">Forgot your password?</Link>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="d-grid">
+                      <button type="submit" className="btn btn-primary">
+                        Sign in <i className='fas fa-sign-in-alt'></i>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <BaseFooter />
+    </>
+  )
+}
+
+export default Login
+---------------------------
+
+logout.jsx
+-------------
+import React, { useEffect } from 'react'
+import BaseHeader from '../partials/BaseHeader'
+import BaseFooter from '../partials/BaseFooter'
+import { logout } from '../utils/auth'
+import { Link } from 'react-router-dom'
+import Swal from 'sweetalert2'
+
+
+function Logout() {
+  useEffect(()=>{
+    logout()
+    Swal.fire({
+      title: "Thank you",
+      text: "You have been logged out",
+      icon: "info",
+      timer: 3000,
+      timerProgressBar: true,
+      
+    });
+  },[])
+  return (
+    <>
+      <BaseHeader />
+
+      <section className="container d-flex flex-column vh-100" style={{ marginTop: "150px" }}>
+        <div className="row align-items-center justify-content-center g-0 h-lg-100 py-8">
+          <div className="col-lg-5 col-md-8 py-8 py-xl-0">
+            <div className="card shadow">
+              <div className="card-body p-6">
+                <div className="mb-4">
+                  <h1 className="mb-1 fw-bold">You have been logged out</h1>
+                  <span>
+                    Thanks for visiing our website, come back anytime!
+                  </span>
+                </div>
+                <form className="needs-validation mt-5" noValidate="">
+                  <div className="d-grid d-flex">
+                    <Link to="/login/" className="btn btn-primary me-2 w-100">
+                      Login <i className='fas fa-sign-in-alt'></i>
+                    </Link>
+                    <Link to="/register/" className="btn btn-primary w-100">
+                      Register <i className='fas fa-user-plus'></i>
+                    </Link>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <BaseFooter />
+    </>
+  )
+}
+
+export default Logout
+
+------------------------------
+
+Forgot Password
+---------------------------
+import React, { useState } from "react";
+import BaseHeader from "../partials/BaseHeader";
+import BaseFooter from "../partials/BaseFooter";
+import { Link } from "react-router-dom";
+
+import apiInstance from "../utils/axios";
+import Swal from "sweetalert2";
+
+function ForgotPassword() {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      setIsLoading(true);
+      await apiInstance.get(`user/password-reset/${email}/`).then((res) => {
+        Swal.fire({
+          title: "Password Reset",
+          text: `Password reset link sent to ${email}`,
+          icon: "info",
+          timer: 3000,
+          timerProgressBar: true,
+        });
+      });
+    } catch (error) {
+      setIsLoading(false);
+      // Check if the error has a response and display a message
+      Swal.fire({
+        title: "Oops...",
+        text: "User does not exist",
+        icon: "error",
+        confirmButtonText: "Try Again",
+      });
+    } finally {
+      setIsLoading(false);
+      setEmail("");
+    }
+  };
+
+  return (
+    <>
+      <BaseHeader />
+
+      <section
+        className="container d-flex flex-column vh-100"
+        style={{ marginTop: "150px" }}
+      >
+        <div className="row align-items-center justify-content-center g-0 h-lg-100 py-8">
+          <div className="col-lg-5 col-md-8 py-8 py-xl-0">
+            <div className="card shadow">
+              <div className="card-body p-6">
+                <div className="mb-4">
+                  <h1 className="mb-1 fw-bold">Forgot Password</h1>
+                  <span>Let's help you get back into your account</span>
+                </div>
+                <form
+                  className="needs-validation"
+                  noValidate=""
+                  onSubmit={handleSubmit}
+                >
+                  <div className="mb-3">
+                    <label htmlFor="email" className="form-label">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      className="form-control"
+                      name="email"
+                      placeholder="johndoe@gmail.com"
+                      required=""
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="d-grid">
+                      {isLoading ? (
+                        <button type="submit" className="btn btn-primary">
+                          Processing <i className="fas fa-spinner fa-spin"></i>
+                        </button>
+                      ) : (
+                        <button type="submit" className="btn btn-primary">
+                          Reset Password <i className="fas fa-arrow-right"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <BaseFooter />
+    </>
+  );
+}
+
+export default ForgotPassword;
+
+--------------------------------------
+
+Create a new password
+--------------------
+import React, { useEffect, useState } from "react";
+import BaseHeader from "../partials/BaseHeader";
+import BaseFooter from "../partials/BaseFooter";
+import apiInstance from "../utils/axios";
+import { useNavigate, useLocation } from "react-router-dom";
+import Swal from "sweetalert2";
+
+function CreateNewPassword() {
+  const [password, setPassword] = useState("");
+  const [confirm_password, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  const location = useLocation(); // Get current location (URL)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (confirm_password !== password) {
+      Swal.fire({
+        title: "Oops...",
+        text: "Passwords do not match",
+        icon: "info",
+        confirmButtonText: "Try Again",
+      });
+      return;
+    } else {
+      const searchParam = new URLSearchParams(location.search);
+      // Get the OTP, refreshToken and uuidb64 from the URL
+      const otp = searchParam.get("otp");
+      const uuidb64 = searchParam.get("uuidb64");
+      const refresh_token = searchParam.get("refresh_token");
+
+      // create a variable called formdata and store otp, refreshToken, password and uuidb64 int it
+      const formdata = new FormData();
+
+      formdata.append("otp", otp);
+      formdata.append("uuidb64", uuidb64);
+      formdata.append("refresh_token", refresh_token);
+      formdata.append("password", password);
+
+      // call the change password api and pass the formdata to it
+      try {
+        setIsLoading(true);
+        await apiInstance
+          .post("user/change-password/", formdata)
+          .then((res) => {
+            Swal.fire({
+              title: "Congratulations!!!",
+              text: "Password Changed Successfully",
+              icon: "success",
+              timer: 3000,
+              timerProgressBar: true,
+            });
+          });
+        navigate("/login/");
+      } catch (error) {
+        console.log(error);
+        setIsLoading(false);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  return (
+    <>
+      <BaseHeader />
+
+      <section
+        className="container d-flex flex-column vh-100"
+        style={{ marginTop: "150px" }}
+      >
+        <div className="row align-items-center justify-content-center g-0 h-lg-100 py-8">
+          <div className="col-lg-5 col-md-8 py-8 py-xl-0">
+            <div className="card shadow">
+              <div className="card-body p-6">
+                <div className="mb-4">
+                  <h1 className="mb-1 fw-bold">Create New Password</h1>
+                  <span>Choose a new password for your account</span>
+                </div>
+                <form
+                  className="needs-validation"
+                  noValidate=""
+                  onSubmit={handleSubmit}
+                >
+                  <div className="mb-3">
+                    <label htmlFor="password" className="form-label">
+                      Enter New Password
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      className="form-control"
+                      name="password"
+                      placeholder="**************"
+                      required=""
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <div className="invalid-feedback">
+                      Please enter valid password.
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="password" className="form-label">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      className="form-control"
+                      name="password"
+                      placeholder="**************"
+                      required=""
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                    <div className="invalid-feedback">
+                      Please enter valid password.
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="d-grid">
+                      {isLoading ? (
+                        <button type="submit" className="btn btn-primary">
+                          Processing <i className="fas fa-spinner fa-spin"></i>
+                        </button>
+                      ) : (
+                        <button type="submit" className="btn btn-primary">
+                          Save New Password{" "}
+                          <i className="fas fa-check-circle"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <BaseFooter />
+    </>
+  );
+}
+
+export default CreateNewPassword;
+
+---------------------------------
+
+========================================================================================================================
+
+Creating the course, teacher and category models
+-----------------------
+
+In the api app ==> models.py
+
+from typing import Any  # Imports the Any type from the typing module for type hinting in functions or methods.
+from django.db import models  # Imports Django's models module to define database models.
+from userauths.models import User, Profile  # Imports the User and Profile models from the userauths app.
+
+from django.utils.text import slugify  # Imports slugify for generating URL-friendly slugs from strings.
+from shortuuid.django_fields import ShortUUIDField  # Imports ShortUUIDField for generating short unique IDs.
+from django.utils import timezone  # Imports timezone for handling time-related functionalities.
+from moviepy.editor import VideoFileClip  # Imports VideoFileClip from moviepy for video editing functionality.
+import math  # Imports the math module for mathematical functions.
+
+# Create your models here.
+
+# Create all the choices here
+NOTI_TYPE = (  # Defines a tuple of notification types for use in models.
+     ("New Order", "New Order"),
+     ("New Review", "New Review"),
+     ("New Course Question", "New Course Question"),
+     ("Draft", "Draft"),
+     ("Course Published", "Course Published"),
+)
+
+RATING = (  # Defines a tuple of rating options for courses.
+     (1, "1 Star"),
+     (2, "2 Star"),
+     (3, "3 Star"),
+     (4, "4 Star"),
+     (5, "5 Star"),
+)
+
+PAYMENT_STATUS = (  # Defines a tuple of payment statuses for use in models.
+     ("Paid", "Paid"),
+     ("Processing", "Processing"),
+     ("Failed", "Failed")
+)
+
+LANGUAGE = (  # Defines a tuple of languages for course offerings.
+     ("English", "English"),
+     ("French", "French"),
+     ("Spanish", "Spanish"),
+     ("Arabic", "Arabic"),
+)
+
+LEVEL = (  # Defines a tuple of proficiency levels for courses.
+     ("Beginer", "Beginer"),  # Note: Spelling error; should be "Beginner".
+     ("Intermediate", "Intermediate"),
+     ("Advanced", "Advanced"),
+)
+
+# TEACHER_STATUS = (  # Commented out, possibly used for a different purpose later.
+#      ("Review", "Review"),
+#      ("Approved", "Approved"),
+#      ("Disabled", "Disabled"),
+# )
+
+TEACHER_COURSE_STATUS = (  # Defines a tuple of statuses for teacher's course management.
+     ("Draft", "Draft"),
+     ("Disabled", "Disabled"),
+     ("Published", "Published"),
+)
+
+PLATFORM_COURSE_STATUS = (  # Defines a tuple of statuses for platform's course management.
+     ("Review", "Review"),
+     ("Disabled", "Disabled"),
+     ("Rejected", "Rejected"),
+     ("Approved", "Approved"),
+)
+
+
+class Teacher(models.Model):  # Defines the Teacher model that extends Django's Model class.
+    user = models.OneToOneField(User, on_delete=models.CASCADE)  # Links each teacher to a single User profile.
+    image = models.FileField(upload_to="course-file", blank=True, null=True, default="default.jpg")  # FileField for teacher's image, allows optional upload.
+    full_name = models.CharField(max_length=100)  # Stores teacher's full name with a maximum length of 100 characters.
+    bio = models.CharField(max_length=100, null=True, blank=True)  # Optional biography field.
+    facebook = models.URLField(null=True, blank=True)  # Optional URL field for Facebook profile.
+    twitter = models.URLField(null=True, blank=True)  # Optional URL field for Twitter profile.
+    linkedin = models.URLField(null=True, blank=True)  # Optional URL field for LinkedIn profile.
+    about = models.TextField(null=True, blank=True)  # Optional field for additional information about the teacher.
+    country = models.CharField(max_length=100, null=True, blank=True)  # Optional field for the teacher's country.
+
+    def __str__(self):  # String representation of the Teacher object.
+        return self.full_name
+    
+    # Below are three member functions. students, courses, and reviews. 
+    # All three will be automatic fields in the Teacher model. The teacher will be linked in the Student, Course, and Review models.
+    def students(self):  # Retrieves all students associated with this teacher.
+        return CartOrderItem.objects.filter(teacher=self)
+    
+    def courses(self):  # Retrieves all courses taught by this teacher.
+        return Course.objects.filter(teacher=self)
+    
+    def review(self):  # Returns the count of reviews associated with this teacher.
+        return Review.objects.filter(teacher=self).count()  # here we need only the count
+    
+class Category(models.Model):  # Defines the Category model for organizing courses.
+    title = models.CharField(max_length=100)  # Field to store the category title.
+    image = models.FileField(upload_to="course-file", default="category.jpg", null=True, blank=True)  # Optional image for the category.
+    slug = models.SlugField(unique=True, null=True, blank=True)  # Slug field for URL-friendly naming.
+
+    class Meta:  # Meta class to define model-specific options.
+        verbose_name_plural = "Categories"  # Defines the plural name for the model in the admin interface.
+        ordering = ['title']  # Specifies the default ordering of query results by title.
+
+    def __str__(self):  # String representation of the Category object.
+        return self.title
+        
+    def course_count(self):  # Returns the number of courses in this category.
+        return Course.objects.filter(category=self).count()
+        
+    def save(self, *args, **kwargs):  # Overrides the save method to generate a slug if not provided.
+        if self.slug == "" or self.slug is None:  # Checks if the slug is empty or None.
+            self.slug = slugify(self.title)  # Generates a slug from the title.
+
+        super(Category, self).save(*args, **kwargs)  # Calls the parent save method to save the object.
+
+class Course(models.Model):  # Defines the Course model for managing courses.
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)  # Links each course to a category.
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)  # Links each course to a teacher.
+    file = models.FileField(upload_to="course-file", blank=True, null=True)  # Optional file upload for the course.
+    image = models.FileField(upload_to="course-file", blank=True, null=True)  # Optional image upload for the course.
+    title = models.CharField(max_length=200)  # Field for the course title.
+    description = models.TextField(null=True, blank=True)  # Optional field for course description.
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)  # Field for course price.
+    language = models.CharField(choices=LANGUAGE, default="English", max_length=100)  # Field for course language with predefined choices.
+    level = models.CharField(choices=LEVEL, default="Beginer", max_length=100)  # Field for course level with predefined choices.
+    platform_course_status = models.CharField(choices=PLATFORM_COURSE_STATUS, default="Review", max_length=100)  # Course status for platform.
+    teacher_course_status = models.CharField(choices=TEACHER_COURSE_STATUS, default="Draft", max_length=100)  # Course status for teacher.
+    featured = models.BooleanField(default=False)  # Boolean field to mark if the course is featured.
+    course_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")  # Unique short ID for the course.
+    slug = models.SlugField(unique=True, null=True, blank=True)  # Slug field for URL-friendly naming.
+    date = models.DateTimeField(default=timezone.now)  # Date field for course creation timestamp.
+
+    def __str__(self):  # String representation of the Course object.
+        return self.title
+     
+    def students(self):  # Retrieves all students enrolled in this course.
+        return EnrolledCourse.objects.filter(course=self)
+     
+    def curriculum(self):  # Retrieves all curriculum items associated with this course.
+        return VariantItem.objects.filter(variant__course=self)
+     
+    def lectures(self):  # Retrieves all lectures associated with this course.
+        return VariantItem.objects.filter(variant__course=self)
+     
+    def average_rating(self):  # Calculates the average rating for this course.
+        average_rating = Review.objects.filter(course=self).aggregate(average_rating=models.Avg('rating'))
+        return average_rating['average_rating']  # Returns the calculated average rating.
+     
+    def rating_count(self):  # Counts the number of active reviews for this course.
+        return Review.objects.filter(course=self, active=True).count()
+     
+    def reviews(self):  # Retrieves all active reviews for this course.
+        return Review.objects.filter(course=self, active=True)          
+
+    def save(self, *args, **kwargs):  # Overrides the save method to generate a slug if not provided.
+        if self.slug == "" or self.slug is None:  # Checks if the slug is empty or None.
+            self.slug = slugify(self.title)  # Generates a slug from the title.
+
+            super(Course, self).save(*args, **kwargs)  # Calls the parent save method to save the object.
+
+# Import necessary modules
+from django.db import models
+from django.utils import timezone
+from shortuuid.djangofields import ShortUUIDField  # A field for generating short UUIDs
+
+# Variant model represents different variants of a course
+class Variant(models.Model):
+    # Foreign key relationship to the Course model
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # Title of the variant, allows up to 1000 characters
+    title = models.CharField(max_length=1000)
+    
+    # Unique identifier for the variant, generated using ShortUUID
+    variant_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date the variant was created, defaults to the current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        # String representation of the variant, returns its title
+        return self.title
+    
+    def variant_items(self):
+        # Method to get all VariantItem instances associated with this variant
+        return VariantItem.objects.filter(variant=self)
+
+
+# VariantItem model represents items associated with a Variant
+class VariantItem(models.Model):
+    # Foreign key relationship to the Variant model
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, related_name="variant_items")
+    
+    # Title of the variant item, allows up to 1000 characters
+    title = models.CharField(max_length=1000)
+    
+    # Optional description of the variant item
+    description = models.TextField(blank=True, null=True)
+    
+    # File associated with the variant item, uploaded to 'course-file' directory
+    file = models.FileField(upload_to="course-file")
+    
+    # Duration of the variant item, can be null or blank
+    duration = models.DurationField(null=True, blank=True)  # Duration can only be detected for certain file types
+    content_duration = models.CharField(max_length=1000, null=True, blank=True)
+    
+    # Flag to indicate if the item should be previewed
+    preview = models.BooleanField(default=False)
+    
+    # Unique identifier for the variant item, generated using ShortUUID
+    variant_item_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date the variant item was created, defaults to the current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        # String representation of the variant item, includes the variant title and its own title
+        return f"{self.variant.title} - {self.title}"
+
+    def save(self, *args, **kwargs):
+        # Override the save method to calculate content duration from the file
+        super().save(*args, **kwargs)
+
+        if self.file:
+            # Use moviepy to extract the duration of the video file
+            clip = VideoFileClip(self.file.path)  # Ensure 'moviepy' is installed
+            duration_seconds = clip.duration
+            
+            # Calculate minutes and seconds from total duration
+            minutes, remainder = divmod(duration_seconds, 60)
+            minutes = math.floor(minutes)
+            seconds = math.floor(remainder)
+
+            # Format duration as a string
+            duration_text = f"{minutes}m {seconds}s"
+            self.content_duration = duration_text
+            
+            # Save the content_duration back to the database
+            super().save(update_fields=['content_duration'])
+
+
+# Question_Answer model represents questions asked by users about a course
+class Question_Answer(models.Model):
+    # Foreign key relationship to the Course model
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # Foreign key to the User model, allowing null values
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Title of the question, optional
+    title = models.CharField(max_length=1000, null=True, blank=True)
+    
+    # Unique identifier for the question, generated using ShortUUID
+    qa_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date the question was created, defaults to the current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        # String representation of the question, includes the username and course title
+        return f"{self.user.username} - {self.course.title}"
+    
+    class Meta:
+        # Order questions by date in descending order
+        ordering = ['-date']
+
+    def messages(self):
+        # Method to retrieve messages associated with this question
+        return Question_Answer_Message.objects.filter(question=self)
+
+    def profile(self):
+        # Method to get the user's profile associated with the question
+        return Profile.objects.get(user=self.user)
+
+
+# Question_Answer_Message model represents messages related to a question
+class Question_Answer_Message(models.Model):
+    # Foreign key relationship to the Course model
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # Foreign key to the Question_Answer model
+    question = models.ForeignKey(Question_Answer, on_delete=models.CASCADE)
+    
+    # Foreign key to the User model, allowing null values
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Content of the message
+    message = models.TextField(null=True, blank=True)
+    
+    # Unique identifier for the message, generated using ShortUUID
+    qam_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date the message was created, defaults to the current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        # String representation of the message, includes the username and course title
+        return f"{self.user.username} - {self.course.title}"
+    
+    class Meta:
+        # Order messages by date in ascending order (oldest first)
+        ordering = ['date']  # oldest to newest
+
+    def messages(self):
+        # Method to retrieve messages associated with this message (should be fixed to avoid confusion)
+        return Question_Answer_Message.objects.filter(question=self)
+    
+    def profile(self):
+        # Method to get the user's profile associated with the message
+        return Profile.objects.get(user=self.user)
+
+
+# Cart model represents a shopping cart for a course
+class Cart(models.Model):
+    # Foreign key relationship to the Course model
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # Foreign key to the User model, allowing null values
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Price of the course
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Tax fee applied to the course
+    tax_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Total price including tax
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Optional country information
+    country = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Unique identifier for the cart, generated using ShortUUID
+    cart_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date the cart was created, defaults to the current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        # String representation of the cart, returns the course title
+        return self.course.title
+
+
+# CartOrder model represents an order placed from the cart
+class CartOrder(models.Model):
+    # Foreign key to the User model, allowing null values
+    student = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Many-to-many relationship with the Teacher model
+    teachers = models.ManyToManyField(Teacher, blank=True)
+    
+    # Subtotal of the order
+    sub_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Tax fee applied to the order
+    tax_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Total price of the order including tax
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Payment status of the order
+    payment_status = models.CharField(choices=PAYMENT_STATUS, default="Processing", max_length=100)
+    
+    # Initial total price before any modifications
+    initial_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Full name of the user placing the order
+    full_name = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Email address of the user
+    email = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Country of the user, optional
+    country = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Many-to-many relationship with the Coupon model, allowing discounts
+    coupons = models.ManyToManyField("api.Coupon", blank=True)
+    
+    # Session ID for payment processing with Stripe
+    stripe_session_id = models.CharField(max_length=1000, null=True, blank=True)
+    
+    # Unique identifier for the order, generated using ShortUUID
+    order_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date the order was created, defaults to the current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        # String representation of the order, includes the user's email and total amount
+        return f"{self.email} - {self.total}"
+
+    class Meta:
+        # Order by date in descending order
+        ordering = ['-date']
+
+    def order_items(self):
+        # Method to get all items associated with this order
+        return CartOrderItem.objects.filter(cart_order=self)
+
+    def __str__(self):
+          return self.order_id
+
+
+from django.db import models
+from django.utils import timezone
+from shortuuid import ShortUUIDField
+from django.contrib.auth.models import User
+
+# CartOrderItem Model
+class CartOrderItem(models.Model):
+    # Foreign key linking to Teacher model, each item is associated with a teacher
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name="orderitem")
+    
+    # Foreign key linking to Course model, each item is associated with a specific course
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="order_item")
+    
+    # Foreign key linking to CartOrder model, representing the order this item belongs to
+    order = models.ForeignKey(CartOrder, on_delete=models.CASCADE)
+    
+    # Decimal field to store saved amount for the item
+    saved = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    
+    # Decimal field for the subtotal of the item before tax
+    sub_total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Decimal field for the tax amount applicable to the item
+    tax_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Decimal field for the total amount for the item after applying tax
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Foreign key linking to Coupon model, allowing optional coupon application
+    coupons = models.ForeignKey("api.Coupon", on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Boolean field indicating whether a coupon has been applied
+    applied_coupon = models.BooleanField(default=False)
+    
+    # ShortUUIDField for unique identifier of the order item
+    cart_order_item_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date field to track when the order item was created, defaulting to current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        # Order by date in descending order for better tracking of recent items
+        ordering = ['-date']
+
+    # Method to return formatted order ID associated with this order item
+    def order_id(self):
+        return f"order ID #{self.order.order_id}"
+    
+    # Method to return payment status associated with the order
+    def payment_status(self):
+        return f"{self.order.payment_status}"
+    
+    # String representation of the order item using its unique ID
+    def __str__(self):
+        return self.cart_order_item_id
+
+# Certificate Model
+class Certificate(models.Model):
+    # Foreign key linking to Course model, indicating the course for which the certificate is issued
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # Foreign key linking to User model, representing the user receiving the certificate
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # ShortUUIDField for unique identifier of the certificate
+    certificate_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date field to track when the certificate was issued, defaulting to current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    # String representation of the certificate using the course title
+    def __str__(self):
+        return self.course.title
+
+# CompletedLessons Model
+class CompletedLessons(models.Model):
+    # Foreign key linking to Course model, representing the course associated with completed lessons
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # Foreign key linking to User model, representing the user who completed the lessons
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Foreign key linking to VariantItem model, representing the specific lesson completed
+    variant_item = models.ForeignKey(VariantItem, on_delete=models.CASCADE)
+    
+    # Date field to track when the lesson was completed, defaulting to current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    # String representation of the completed lessons using the course title
+    def __str__(self):
+        return self.course.title
+    
+    class Meta:
+        # Set plural name for the model in the admin panel
+        verbose_name_plural = "Completed Lessons"
+
+# EnrolledCourse Model
+class EnrolledCourse(models.Model):
+    # Foreign key linking to Course model, representing the course the user is enrolled in
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # Foreign key linking to User model, representing the user who is enrolled in the course
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # ShortUUIDField for unique identifier of the enrollment
+    enrollment_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date field to track when the enrollment was created, defaulting to current timestamp
+    date = models.DateTimeField(default=timezone.now)
+    
+    # Foreign key linking to Teacher model, representing the teacher associated with the course
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Foreign key linking to CartOrderItem model, representing the order item associated with the enrollment
+    order_item = models.ForeignKey(CartOrderItem, on_delete=models.CASCADE)
+
+    # String representation of the enrolled course using the course title
+    def __str__(self):
+        return self.course.title
+    
+    # Method to retrieve all lectures associated with the enrolled course
+    def lectures(self):
+        return VariantItem.objects.filter(variant__course=self.course)
+    
+    # Method to retrieve completed lessons for the enrolled course
+    def completed_lessons(self):
+        return CompletedLessons.objects.filter(course=self.course, user=self.user)
+    
+    # Method to retrieve curriculum (variants) for the enrolled course
+    def curriculum(self):
+        return Variant.objects.filter(course=self.course)
+    
+    # Method to retrieve notes associated with the enrolled course
+    def note(self):
+        return Note.objects.filter(course=self.course, user=self.user)
+    
+    # Method to retrieve question and answers associated with the enrolled course
+    def question_answer(self):
+        return Question_Answer.objects.filter(course=self.course)
+    
+    # Method to retrieve the first review associated with the enrolled course
+    def review(self):
+        return Review.objects.filter(course=self.course, user=self.user).first()
+
+# Note Model
+class Note(models.Model):
+    # Foreign key linking to Course model, representing the course associated with the note
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # Foreign key linking to User model, representing the user who created the note
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Char field for the title of the note, allowing for optional input
+    title = models.CharField(max_length=1000, null=True, blank=True)
+    
+    # Text field for the content of the note
+    note = models.TextField()
+    
+    # ShortUUIDField for unique identifier of the note
+    note_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Date field to track when the note was created, defaulting to current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    # String representation of the note using the title
+    def __str__(self):
+        return self.title
+
+# Review Model
+class Review(models.Model):
+    # Foreign key linking to User model, representing the user who wrote the review
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Foreign key linking to Course model, representing the course being reviewed
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    # Date field to track when the review was created, defaulting to current timestamp
+    date = models.DateTimeField(default=timezone.now)
+    
+    # Text field for the review content
+    review = models.TextField()
+    
+    # Integer field for the rating of the course, with predefined choices
+    rating = models.IntegerField(choices=RATING, default=None)
+    
+    # Char field for any reply to the review, allowing optional input
+    reply = models.CharField(null=True, blank=True, max_length=1000)
+    
+    # Boolean field indicating if the review is active or not
+    active = models.BooleanField(default=False)
+
+    # String representation of the review using the course title
+    def __str__(self) -> str:
+        return self.course.title
+    
+    # Method to retrieve the profile associated with the user who wrote the review
+    def profile(self):
+        return Profile.objects.get(user=self.user)
+
+# Notification Model
+class Notification(models.Model):
+    # Foreign key linking to User model, representing the user who receives the notification
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Foreign key linking to Teacher model, representing the teacher associated with the notification
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, blank=True, null=True)
+    
+    # Foreign key linking to CartOrder model, representing the order related to the notification
+    order = models.ForeignKey(CartOrder, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Foreign key linking to CartOrderItem model, representing the specific order item related to the notification
+    order_item = models.ForeignKey(CartOrderItem, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Char field for the notification message
+    message = models.CharField(max_length=1000, null=True, blank=True)
+    
+    # Boolean field indicating if the notification has been read or not
+    is_read = models.BooleanField(default=False)
+    
+    # Date field to track when the notification was created, defaulting to current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    # String representation of the notification using the message
+    def __str__(self):
+        return self.message
+
+# CartOrder Model
+class CartOrder(models.Model):
+    # Foreign key linking to User model, representing the user who made the order
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Char field for the unique order ID
+    order_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    
+    # Char field for the payment status of the order, with predefined choices
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default=None)
+    
+    # Date field to track when the order was created, defaulting to current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    # String representation of the cart order using the order ID
+    def __str__(self):
+        return self.order_id
+
+# Teacher Model
+class Teacher(models.Model):
+    # Char field for the name of the teacher
+    name = models.CharField(max_length=100)
+    
+    # Char field for the biography of the teacher
+    bio = models.TextField()
+    
+    # Char field for the profile image of the teacher, allowing optional input
+    profile_image = models.CharField(max_length=255, null=True, blank=True)
+    
+    # Char field for the teacher's email address, must be unique
+    email = models.EmailField(unique=True)
+    
+    # Char field for the phone number of the teacher
+    phone = models.CharField(max_length=15)
+    
+    # Date field to track when the teacher was created, defaulting to current timestamp
+    date = models.DateTimeField(default=timezone.now)
+
+    # String representation of the teacher using their name
+    def __str__(self):
+        return self.name
+
+========================================================================================================================
+Create Serializers for the models in the api app ==> serializer.py file
+
+# Importing necessary modules and models
+from rest_framework import serializers
+from userauths.models import User, Profile
+from .models import Teacher, Category, Course, Variant, VariantItem, Question_Answer, Question_Answer_Message, Cart, CartOrder, CartOrderItem, Certificate, CompletedLessons, EnrolledCourse, Note, Review, Notification, Country, Coupon, WishList
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.password_validation import validate_password
+
+# =========================================================================================
+# REGISTRATION AND AUTHENTICATION
+
+# Serializer to handle token generation for user authentication
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        # Call the parent class method to get the token
+        token = super().get_token(user)
+        
+        # Add custom claims to the token
+        token['email'] = user.email          # Add user's email to token
+        token['full_name'] = user.full_name  # Add user's full name to token
+        token['username'] = user.username      # Add user's username to token
+        
+        return token  # Return the modified token
+
+# Serializer for user registration
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    confirm_password = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User  # Specify the model to be serialized
+        fields = ['full_name', 'email', 'password', 'confirm_password']  # Define fields to include
+
+    def validate(self, attr):
+        # Custom validation to ensure that password and confirm_password match
+        if attr['password'] != attr['confirm_password']:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+        return attr  # Return validated attributes
+
+    def create(self, validated_data):
+        # Create a new user instance after validation
+        user = User.objects.create(
+            full_name=validated_data['full_name'],
+            email=validated_data['email'],
+        )
+        # Derive username from email
+        email_username, _ = user.email.split("@")
+        user.username = email_username
+        user.set_password(validated_data['password'])  # Set the user's password
+        user.save()  # Save the user instance to the database
+        return user  # Return the created user
+
+# Serializer for returning user details
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for user profiles
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# =========================================================================
+# COURSE, TEACHER, ORDER, REVIEW, PAYMENTS, CART etc serializer
+
+# Serializer for course categories
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category  # Specify the model
+        fields = ['title', 'image', 'slug', 'course_count']  # Define fields to include
+
+# Serializer for teachers
+class TeacherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Teacher  # Specify the model
+        fields = ['user', 'image', 'full_name', 'bio', 'facebook', 'twitter', 'linkedin', 'about', 'country', 'students', 'courses', 'reviews']  # Define fields to include
+
+# Serializer for variant items (used in courses)
+class VariantItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VariantItem  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for variants (group of variant items)
+class VariantSerializer(serializers.ModelSerializer):
+    variant_item = VariantItemSerializer()  # Nest VariantItemSerializer
+    class Meta:
+        model = Variant  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for question-answer messages
+class Question_Answer_MessageSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer(many=True)  # Nested profile information
+    class Meta:
+        model = Question_Answer_Message  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for question-answers
+class Question_AnswerSerializer(serializers.ModelSerializer):
+    messages = Question_Answer_MessageSerializer(many=True)  # Nested messages
+    profile = ProfileSerializer(many=True)  # Nested profile information
+    class Meta:
+        model = Question_Answer  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for cart items
+class CartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cart  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for items in cart orders
+class CartOrderItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CartOrderItem  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for cart orders
+class CartOrderSerializer(serializers.ModelSerializer):
+    order_items = CartOrderItemSerializer(many=True)  # Nested cart order items
+    class Meta:
+        model = CartOrder  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for certificates
+class CertificateSerializer(serializers.ModelSerializer):  # Corrected from Certificate to CertificateSerializer
+    class Meta:
+        model = Certificate  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for completed lessons
+class CompletedLessonsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompletedLessons  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for notes
+class NoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Note  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for reviews
+class ReviewSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer(many=False)  # Nested profile information
+    class Meta:
+        model = Review  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for notifications
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for coupons
+class CouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for wish lists
+class WishListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WishList  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for countries
+class CountrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Country  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for enrolled courses
+class EnrolledCourseSerializer(serializers.ModelSerializer):
+    lectures = VariantItemSerializer(many=True, read_only=True)  # Nested lecture items
+    completed_lessons = CompletedLessonsSerializer(many=True, read_only=True)  # Nested completed lessons
+    curriculum = VariantItemSerializer(many=True, read_only=True)  # Nested curriculum items
+    note = NoteSerializer(many=True, read_only=True)  # Nested notes
+    question_answer = Question_AnswerSerializer(many=True, read_only=True)  # Nested questions and answers
+    review = ReviewSerializer(many=True, read_only=True)  # Nested reviews
+    class Meta:
+        model = EnrolledCourse  # Specify the model
+        fields = '__all__'  # Include all fields
+
+# Serializer for courses
+class CourseSerializer(serializers.ModelSerializer):
+    students = EnrolledCourseSerializer(many=True)  # Nested enrolled students
+    curriculum = VariantItemSerializer(many=True)  # Nested curriculum items
+    lectures = VariantItemSerializer(many=True)  # Nested lecture items
+    class Meta:
+        model = Course  # Specify the model
+        fields = [
+            "category",
+            "teacher",
+            "file",
+            "image",
+            "title",
+            "description",
+            "price",
+            "language",
+            "level",
+            "platform_course_status",
+            "teacher_course_status",
+            "featured",
+            "course_id",
+            "slug",
+            "date",
+            "students",
+            "curriculum",
+            "lectures",
+            "average_rating",
+            "rating_count",
+            "reviews",
+        ]  # Define fields to include
+        
+# =======================================================================
+
+
+
+=======================================================================================================================
+
+Password Reset (Client)
+Create component to send email to server
+Create onChange and onSubmit handlers
+
+Create Password (API)
+Create API to fetch password and related auth data 
+Verify is user exists and token is valid
+Reset password
+Configure API in url
+
+
+Create Password (Client)
+Create component to create new password
+Formdata and send it to bak
+
+
+Setting Up React.JS - Login, Register and Logout
+Make sure you have node.js installed
+Yarn is recommended as package manager. You can simply type npm install --global yarn to install yarn
+Any IDE, VS Code recommended
+Git version control (optional but recommended)
+CD into frontend folder
+Create new project using vite.js
+
+	Why Vite and Not Create React App?
+Using Vite to set up a React project is often a better choice than Create React App (CRA) for a simpler reason – speed and efficiency. Vite's development server is notably faster, meaning you spend less time waiting for your changes to take effect. It also creates smaller, more efficient code bundles, which results in faster page loads for your website visitors. 
+
+Vite's configuration is straightforward, and it doesn't include unnecessary code for older browsers, which can make your site faster and more modern. I will also say that, Vite is designed to work well with both Vue and React, offering you a fast and versatile tool for building web applications. Finally, it's about choosing a tool that makes your development process faster and smoother that we are aiming for in this course. So let’s give Vite.js a spin.
+
+
+npm install --global yarn
+yarn create vite . --template react
+yarn
+yarn add axios react-router-dom@6.10.0 zustand
+yarn add -D simple-zustand-devtools
+yarn dev
+
+
+Let’s Continue:
+Imagine you and your friends are tackling a group project. You need to keep track of things like progress, tasks, and deadlines. How you share this information can make or break the project's flow.
+
+The Shared Notebook Approach (React Context API):
+Picture a big, communal notebook where everyone scribbles down updates. It's simple to set up, anyone can jump in and add their thoughts, but things can get messy fast. Multiple edits simultaneously? Chaos! This approach works okay for small projects with basic data needs, but imagine trying to decipher scribbles and conflicting updates once things get complex.
+
+The Personal Whiteboard Approach (Zustand):
+Now, imagine everyone has their own whiteboard. You organize your own thoughts, tasks, and progress. Need to share something? Point to your board, have a quick chat, and everyone's on the same page. It's clearer, more organized, and each person has control over their own "data kingdom." This makes things much smoother for larger projects with intricate details and multiple contributors.
+
+
+
+Zustand vs. React Context API: Two Tools for Different Jobs:
+Think of React Context API as your shared notebook. It's easy to use, gets the job done for simple projects, but can get cluttered as things grow. Zustand, on the other hand, is like your personal whiteboard. It offers more structure, organization, and control, making it ideal for complex projects with lots of data and contributors.
+
+
+So, when do you grab the whiteboard (Zustand)?
+When your project's data gets complicated and needs better organization.
+When you want clear tracking of individual contributions and updates.
+When performance matters and you need things to run smoothly.
+When your project scales and you need a state management solution that can handle the growth.
+
+In essence, Zustand provides a more robust and scalable way to manage state in complex React applications, while React Context API remains a solid choice for sharing basic data in simpler projects. It's all about picking the right tool for the job, keeping your project organized and your team in sync!
+
+1. Creating Store using Zustand: 
+Create a folder in src named store & create a file named auth.js inside it. This store keeps track of user info, such as whether they're logged in   or not. We will create a function to store user Id and Username for future purposes, since we will be making good use of the user Id.
+
+Now, let's create utility functions that we will require for authentication purpose.
+We will create utils folder inside src folder.
+We will create 4 files, auth.js axios.js constants.js useAxios.js
+
+Keeping Your Keys Safe: Managing Access Tokens with useAxios.js
+Imagine you have a fancy apartment building with a short-lived access key. It lets you in your unit for a while, but once it expires, you're locked out! That's what happens with access tokens in web applications. They grant access to private areas, but they expire quickly.
+
+The Challenge: No More Lockouts
+So, how do we avoid getting locked out after the token expires? We need a smart assistant who checks our key before opening the door (sending a request to the server). If the key is expired, the assistant grabs a new one using a special "refresh token". Once we have a fresh key, we can confidently enter our secure apartment (make API requests to private routes).
+
+The Solution: useAxios.js will now come to the Rescue
+This is where useAxios.js comes in. It's like a library of helpful tools for dealing with API requests. One of its coolest features is interceptors. They act like security guards who intercept outgoing requests before they reach the server. 
+
+Here's how we can use them:
+Interceptor on Patrol: We set up an interceptor with useAxios.js to always check our access token before sending a request. Think of it as the guard checking your key.
+Expired Key? No Problem: If the key is expired, the interceptor doesn't just let you get locked out. It uses the refresh token to grab a new key! It's like having a backup key hidden somewhere.
+Fresh Key, Open We’re In!: Now With the new key in hand, the interceptor updates your application's state (like letting everyone know you have a new key) and sends the request along its merry way. Now you can access your private apartment (API route) without any issues.
+
+Bonus: A Helping Hand with React Custom Hooks
+To make things even smoother, we can use a special helper called a React Custom Hook. It's like having a personal assistant who manages all the key checking and refreshing behind the scenes. You just tell it where to get the keys and what to do with them, and it takes care of the rest.
+So, with useAxios.js and custom hooks, you can say goodbye to lockouts and enjoy seamless access to your secure application areas!
+
+2. Creating UTILS files
+Create a new folder in src called utils
+Create 4 new files in that utils folder called (auth.js, axios.js, constants.js & useAxios.js)
+
+
+
+
+3. Private Routes In React.Js
+Create one new folder in the src folder caled layouts
+In layouts folder create > MainWrapper.js and PrivateRoutes.js
+
+Let Talk about PrivateRoutes and Mainwrappers
+Imagine your app is like a house with different rooms. Some rooms are open to everyone (like the living room), while others are private (like the study). To keep the private rooms safe, you need a reliable security system.
+Here's how we'll set it up:
+Building the Foundation:
+Create a special folder called "layouts" in your frontend root directory. This is like laying the groundwork for your security system.
+Inside this folder, we'll place two essential files:
+MainWrapper.jsx: This is like a master blueprint that holds the entire house together. It's responsible for keeping track of who's currently in the house (the logged-in user).
+PrivateRoute.jsx: This acts as a diligent security guard, stationed at the entrance of every private room. It checks if a visitor has permission to enter (if they're logged in).
+
+Setting Up the Security Guard:
+The PrivateRoute component does a crucial job:
+It examines each visitor's credentials (checks if they're logged in).
+If the visitor is authorized, it grants them access to the private room they want to visit.
+If not, it politely but firmly redirects them to the login page, where they can get the necessary permissions.
+
+
+
+
+Putting It All Together:
+Once we have this security system in place, we can start building the different rooms (pages) of our house (app).
+For each private room, we'll use the PrivateRoute component as its doorway, ensuring that only authorized visitors can enter.
+Making It Work:
+The MainWrapper component, acting as the house's supervisor, will communicate with the PrivateRoute guards to ensure they have the correct information about who's currently in the house (the logged-in user). This way, the guards can make accurate decisions about who to let in.
+With this setup, we'll have a well-protected house where only authorized visitors can access the private rooms, keeping our sensitive information safe and sound!
+
+
+Our Application Authentication will have 5 routes
+Login
+Register
+Logout
+Forgot Password
+Create Password
+
+
+
+
+Configure Template In React
+Add Bootstrap CDN to index page
+Create Header and Footer
+Imort the Home page
+Override the register, login and logout page
+
+Create Models In Django
+Create Store, CartOrder, CartOrderItems, Wishlist and Other required 
+Register Models In Admin
+Test In Model
+
+Serializers Models In Django
+Create a new serializer.py in the api app
+Serilaize the models in the new file
+
+Course List, Detail and Category List API View
+Create a new view to list category, course list and detail page
+Register In Routes
+Fetch In react and display items
+
+Fetch Courses from backend for Index.js - (Client)
+Fetch and list courses in Index.jsx
+Configure index.jsx and test
+
+Fetch Courses from backend for CourseDetail.js - (Client)
+Fetch and show course detail in CourseDetail.jsx
+
+Cart Create API View
+Create a new view to get and destructure data from payload
+Create a new cart instance or update cart
+
+Cart List API View
+Create a new view to list cart items
+Configure Routes and Test
+
+Cart Stats API View
+Create a new view to list cart stats like total price, tax, price e.t.c
+Configure Routes and Test
+
+Cart Item Delete API View
+Create a new view to delete item from cart based on item and cart id
+Configure Routes and Test
+
+Add To Cart - CourseDetail.jsx (Client)
+Consume the cart create API View to add or update cart
+Test if new cart items are being created in the database.
+
+Add To Cart - Index.jsx (Client)
+Consume the cart create API View to add or update cart but from the Index.jsx courses list
+Test if new cart items are being created in the database when adding to cart from the index.html
+
+Cart Item Count - CartContext (Client)
+Create new context.jsx file and instantiate a new CartContext function
+Fetch the cart items and it’s length in the App.jsx and set the length to a state
+Wrap the entire application with the Cart Context and set the cart length in the CartContext.Provider value={} attribute
+Use the useContext hook to get the CartContext and it’s value in the Baseheader.jsx
+Display the total amount of cart items in the header cart icon section
+Set the new cart length when adding to cart from the index.jsx and coursedetail.jsx
+
+Cart List Page (Client)
+Consume the cart list api view to list items in the Cart database onto the cart.jsx page
+List stats and also configure the templates to contain personal informations
+
+
+Cart Delete Item (Client)
+Using the Cart Delete Item APi View destroy item from cart when a user clicks on the trash  button
+Update the cart to show the latest items, set the updated cartcount to the context
+
+Cart Personal Information (Client)
+Configure the cart page to get a save user personal detail to the states
+Write function to handle changing of input
+
+Create New Cart Order (Client)
+Using all the informations gathered on the cart page, create a new cart order
+Create a new formdata and send the database to the api in a payload
+
+Checkout View (API)
+Write a view to fetch a checkout order instance using order Id
+
+Checkout Component (Client)
+In the checkout.jsx, fetch the  checkout order item via the checkout api
+
+Apply Coupon (API)
+Write a view to apply a new coupon code
+Apply Coupon (Client )
+Consume the apply coupon api to apply a new coupon from the frontend
+
+Stripe Checkout  View - API
+Create the stripe checkout view to initiate a new payment instance using stripe
+
+Get paypal access token - API
+Using the paypal access token api endpoint, get a new paypal endpoint
+
+Payment Success Processing - API
+Confirm payment by making api calls to the payment gateway verification website to check if the the payment went through
+If the payment went through make the order a paid and enroll a student in the new course
+
+Notification System - API
+Create a notification object for the teacher and the student (if need be for student notification)
+
+
+
+Paypal Payment using React.js (Client)
+Create a new paypal payment feature using react.js
+
+Stripe Payment using React.js (Client)
+Make an api call to the stripe endpoint to create a stripe payment
+
+Payment Success Page (Client)
+Based on the response returned from the PaymentSuccesAPIView, render the payment success page.
+
+Search Product API (Client)
+Create a new api to search courses.
+
+Search Course using React.js (Client)
+Create a new api to search courses.
+
+
+
+
+
+STUDENT SECTION API AND CLIENT
+Student Stats
+Create a new api to search courses.
+
+Student Course List API View
+Create a new api to search courses.
+
+Student Course Detail API View
+Create a new api to search courses.
+
+Student Mark Course As Completed View
+Create a new api to search courses.
+
+
+
+{
+  "full_name":"Abdul Zak",
+  "email":"coolone226@gmail.com",
+  "country":"Canada",
+  "cart_id": "123456"
+  "user_id": 2,
+}
